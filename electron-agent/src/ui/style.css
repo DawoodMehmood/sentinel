@@ -1,0 +1,152 @@
+/* Global / Window */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* prevent scrollbars in the popover */
+    font-family: Arial, sans-serif;
+    background: #1e1e1e;
+    color: #f1f1f1;
+}
+
+/* Utility */
+.hidden {
+    display: none !important;
+}
+
+/* Screens */
+#token-section,
+#control-section {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+}
+
+/* Token form */
+.input-group {
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+}
+
+button {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #0078d7;
+    color: white;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+button:hover {
+    background: #005a9e;
+}
+
+.error {
+    margin: 4px 0 0 0;
+    color: #f44336;
+    font-size: 12px;
+}
+
+/* Control screen header */
+.top-bar {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 16px;
+    color: #aaa;
+}
+
+.icon-btn:hover {
+    color: #fff;
+}
+
+/* Title */
+.title {
+    font-size: 22px;
+    margin: 0 0 18px 0;
+}
+
+/* Toggle switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin-bottom: 12px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #444;
+    transition: 0.25s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    content: "";
+    position: absolute;
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: #fff;
+    transition: 0.25s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #0078d7;
+}
+
+input:checked+.slider:before {
+    transform: translateX(26px);
+}
+
+/* Session text */
+.status {
+    font-size: 14px;
+}
+
+.status.off {
+    color: #f44336;
+}
+
+.status.on {
+    color: #4caf50;
+}

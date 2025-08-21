@@ -1,0 +1,63 @@
+{
+  "name": "electron-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.js",
+"scripts": {
+  "dev": "electron .",
+  "pack": "npm run rebuild && electron-builder --dir",
+  "dist": "npm run rebuild && electron-builder",
+  "rebuild": "electron-rebuild -f --only better-sqlite3 && electron-rebuild -f --only keytar",
+  "postinstall": "electron-rebuild -f --only better-sqlite3 && electron-rebuild -f --only keytar"
+},
+  "build": {
+    "appId": "com.yourco.agent",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      ".env"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ],
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "extraMetadata": {
+      "main": "src/main.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DawoodMehmood/sentinel.git"
+  },
+  "keywords": [],
+  "author": "Dawood Mehmood",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DawoodMehmood/sentinel/issues"
+  },
+  "homepage": "https://github.com/DawoodMehmood/sentinel#readme",
+  "dependencies": {
+    "active-win": "^8.2.1",
+    "axios": "^1.11.0",
+    "better-sqlite3": "^12.2.0",
+    "dotenv": "^17.2.1",
+    "keytar": "^7.9.0",
+    "node-machine-id": "^1.1.12",
+    "ps-list": "^8.1.1"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
+    "electron": "^37.3.1",
+    "electron-builder": "^26.0.12"
+  }
+}
