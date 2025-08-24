@@ -290,10 +290,10 @@ const Header = () => {
                   <>
                     <p
                       className={`loginBtn px-7 py-3 text-base font-medium ${
-                        !sticky && pathUrl === "/" ? "text-white" : "text-dark"
+                        !sticky && pathUrl === "/" ? "text-white" : ''
                       }`}
                     >
-                      {session?.user?.name}
+                      {session?.user?.name?.split(" ")[0]}
                     </p>
                     {pathUrl !== "/" || sticky ? (
                       <button

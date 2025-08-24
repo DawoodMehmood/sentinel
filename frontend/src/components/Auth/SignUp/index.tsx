@@ -14,31 +14,48 @@ const SignUp = () => {
   const [isPassword, setIsPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: any) => {
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
 
     setLoading(true);
-    const data = new FormData(e.currentTarget);
-    const value = Object.fromEntries(data.entries());
-    const finalData = { ...value };
+    try {
+      const fd = new FormData(e.currentTarget);
+      const payload = {
+        name: (fd.get("name") as string)?.trim() || "",
+        email: (fd.get("email") as string)?.toLowerCase().trim() || "",
+        password: (fd.get("password") as string) || "",
+      };
 
-    fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(finalData),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        toast.success("Successfully registered");
-        setLoading(false);
-        router.push("/signin");
-      })
-      .catch((err) => {
-        toast.error(err.message);
-        setLoading(false);
+      if (!payload.name || !payload.email || !payload.password) {
+        toast.error("Please fill all fields");
+        return;
+      }
+
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // our route returns { message: string }
+        toast.error(data?.message || `Error ${res.status}`);
+        return;
+      }
+
+      // success → data = { message, user: { id, name, email, slug, ... } }
+      toast.success("Successfully registered");
+      // Optionally: keep slug around for onboarding
+      // localStorage.setItem("companySlug", data.user?.slug ?? "");
+      router.push("/signin");
+    } catch (err: any) {
+      toast.error(err?.message || "Network error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

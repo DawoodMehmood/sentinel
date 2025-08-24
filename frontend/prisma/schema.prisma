@@ -1,16 +1,17 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// prisma/schema.prisma
+// Base: your SaaS template with NextAuth + Stripe elsewhere
+// Added: Company fields on User, Employee, ActivitySpan, Patterns (daily & lifetime)
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // Only needed when using a cloud provider that doesn't support the creation of new databases, like Heroku. Learn more: https://pris.ly/d/migrate-shadow
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+// NextAuth core (unchanged)
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -35,9 +36,19 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Company = auth User
 model User {
   id                    String    @id @default(cuid())
   name                  String?
@@ -47,14 +58,109 @@ model User {
   password              String?
   passwordResetToken    String?   @unique
   passwordResetTokenExp DateTime?
-  accounts              Account[]
-  sessions              Session[]
+
+  // Company (tenant) fields
+  slug            String?   @unique // company slug, set after signup
+  timezone        String    @default("UTC") // e.g. "Asia/Karachi"
+  officeEndHour   Int       @default(18) // local 0..23, for scheduling mining after hours
+  userLimit       Int       @default(3) // number of employees allowed
+  subscriptionEnd DateTime? // null means active or handled by Stripe webhooks
+
+  // Relations
+  accounts  Account[]
+  sessions  Session[]
+  employees Employee[]
+
+  // (Optional) you can add Stripe IDs here if your template doesn’t already store them elsewhere
+  stripeCustomerId   String?              @unique
+  stripeSubId        String?              @unique
+  ActivitySpan       ActivitySpan[]
+  SeqPatternDaily    SeqPatternDaily[]
+  SeqPatternLifetime SeqPatternLifetime[]
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
+// Employees (agent users)
+model Employee {
+  id        String  @id @default(cuid())
+  companyId String
+  name      String?
+  email     String? @unique
 
-  @@unique([identifier, token])
+  // Agent auth/binding
+  token         String    @unique // used by Electron; generated server-side
+  tokenActive   Boolean   @default(true)
+  boundDeviceId String? // first device that registers with this token
+  lastUsed      DateTime?
+
+  // Relations
+  company User @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Data
+  spans        ActivitySpan[]
+  patternsDay  SeqPatternDaily[]
+  patternsLife SeqPatternLifetime[]
+
+  @@index([companyId])
+}
+
+// Agent upload: spans (event-driven)
+model ActivitySpan {
+  id         String @id @default(cuid())
+  companyId  String
+  employeeId String
+
+  startTs     DateTime
+  endTs       DateTime
+  durationMs  Int
+  app         String
+  titleNorm   String
+  rawTitle    String?
+  inferredEnd Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  company  User     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, startTs])
+  @@index([companyId, employeeId, startTs])
+  @@index([companyId, app])
+}
+
+// Nightly mining outputs
+// - Daily: immutable per-day snapshots per employee
+// - Lifetime: cumulative per employee
+model SeqPatternDaily {
+  id         String   @id @default(cuid())
+  companyId  String
+  employeeId String
+  day        DateTime // UTC timestamp marking the start of the company's local day
+  n          Int // 2..5 typically
+  seqKey     String // e.g. "chrome>excel>powerbi"
+  support    Int
+  firstSeen  DateTime @default(now())
+  lastSeen   DateTime @default(now())
+
+  company  User     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, employeeId, day, n, seqKey])
+  @@index([companyId, day, n, support])
+}
+
+model SeqPatternLifetime {
+  id         String   @id @default(cuid())
+  companyId  String
+  employeeId String
+  n          Int
+  seqKey     String
+  support    Int      @default(0) // cumulative across all time
+  firstSeen  DateTime @default(now())
+  lastSeen   DateTime @default(now())
+
+  company  User     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, employeeId, n, seqKey])
+  @@index([companyId, n, support])
 }
