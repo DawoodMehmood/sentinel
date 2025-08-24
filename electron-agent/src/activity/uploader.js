@@ -6,8 +6,10 @@ import { dequeueBatch, deleteThrough } from './queue.js';
 let running = false;
 let stopped = false;
 let token = null;
+let companySlug = null;
 
 export function setAuthToken(t) { token = t; }
+export function setCompanySlug(slug) { companySlug = slug; }
 
 export function startUploader() {
   if (running) return;
@@ -22,13 +24,30 @@ async function loop() {
   let backoff = 1000;
   while (!stopped) {
     try {
-      if (!token) { await sleep(2000); continue; }
+      if (!token || !companySlug) { await sleep(2000); continue; }
       const { rows, lastId } = dequeueBatch(UPLOAD_BATCH_SIZE);
       if (!rows.length) { await sleep(UPLOAD_INTERVAL_MS); continue; }
-      await axios.post(`${API_BASE}/agent/upload-batch`, {
+
+      // Filter to only ACTIVE_SPAN; ignore others defensively
+      const spans = rows.filter(r => r.type === 'ACTIVE_SPAN').map(e => ({
+        type: 'ACTIVE_SPAN',
+        app: e.app,
+        title: e.title || '',
+        titleNorm: e.titleNorm || '',
+        startTs: e.startTs,
+        endTs: e.endTs,
+        durationMs: e.durationMs,
+        inferredEnd: !!e.inferredEnd,
+      }));
+
+      if (!spans.length) { await sleep(UPLOAD_INTERVAL_MS); continue; }
+
+      await axios.post(`${API_BASE}/agent/upload`, {
+        companySlug,
         deviceId: getDeviceId(),
-        events: rows,
+        events: spans,
       }, { headers: { Authorization: `Bearer ${token}` } });
+
       if (lastId) deleteThrough(lastId);
       backoff = 1000;
     } catch (e) {

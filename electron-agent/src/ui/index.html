@@ -5,26 +5,31 @@
     <meta charset="UTF-8" />
     <title>Sentinel Agent</title>
     <link rel="stylesheet" href="style.css" />
+    <meta http="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self';">
 </head>
 
 <body>
     <!-- Token Screen -->
     <div id="token-section">
-        <h3>Enter Token</h3>
+        <h3>Connect to Company</h3>
 
         <form id="tokenForm">
             <div class="input-group">
-                <input type="text" id="tokenInput" placeholder="Enter your token" autocomplete="off" />
+                <input type="text" id="companySlugInput" placeholder="Company slug (e.g. acme-co)" autocomplete="off" />
             </div>
-            <p id="tokenError" class="error hidden">Please enter a token</p>
-            <button type="submit" id="saveToken">Save Token</button>
+            <div class="input-group">
+                <input type="text" id="tokenInput" placeholder="Device token" autocomplete="off" />
+            </div>
+            <p id="tokenError" class="error hidden">Please enter company slug and token</p>
+            <button type="submit" id="saveToken">Connect</button>
         </form>
     </div>
 
     <!-- Control Screen -->
     <div id="control-section" class="hidden">
         <div class="top-bar">
-            <button id="gear" class="icon-btn" title="Edit token">⚙️</button>
+            <button id="gear" class="icon-btn" title="Change token">⚙️</button>
         </div>
 
         <h2 class="title">SENTINEL</h2>

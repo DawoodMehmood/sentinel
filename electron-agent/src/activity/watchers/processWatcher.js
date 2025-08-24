@@ -4,6 +4,8 @@ import { enqueue } from '../queue.js';
 let known = new Map();
 let procTimer = null;
 
+// This watcher is optional for spans; it emits APP_OPEN/APP_CLOSE which we currently don't upload.
+// You can keep it for future analytics or remove to save CPU.
 export function startProcessWatcher() {
   if (procTimer) return;
   procTimer = setInterval(async () => {
