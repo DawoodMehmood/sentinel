@@ -5,13 +5,17 @@
     <meta charset="UTF-8" />
     <title>Sentinel Agent</title>
     <link rel="stylesheet" href="style.css" />
-    <meta http="Content-Security-Policy"
-        content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self';">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self';" />
 </head>
 
 <body>
     <!-- Token Screen -->
-    <div id="token-section">
+    <div id="token-section" class="hidden">
+        <div class="top-bar">
+            <button id="backBtn" class="icon-btn hidden" title="Back">➡️</button>
+        </div>
+
         <h3>Connect to Company</h3>
 
         <form id="tokenForm">

@@ -8,21 +8,16 @@ const tokenInput        = document.getElementById("tokenInput");
 const tokenError        = document.getElementById("tokenError");
 
 const gearBtn       = document.getElementById("gear");
+const backBtn       = document.getElementById("backBtn");
 const toggleSwitch  = document.getElementById("toggleSwitch");
 const sessionStatus = document.getElementById("sessionStatus");
 
-function showTokenScreen(prefill = { slug: "", token: "" }) {
-  companySlugInput.value = prefill.slug || "";
-  tokenInput.value = prefill.token || "";
-  tokenError.classList.add("hidden");
-  tokenSection.classList.remove("hidden");
-  controlSection.classList.add("hidden");
-  companySlugInput.focus();
-}
+// simple UI state: are we in "change" mode (arrived via gear)?
+let changeMode = false;
+// cache saved creds for comparison to avoid unnecessary registration calls
+let lastSaved = { slug: "", token: "" };
 
-function showControlScreen(running) {
-  tokenSection.classList.add("hidden");
-  controlSection.classList.remove("hidden");
+function setStatus(running) {
   toggleSwitch.checked = !!running;
   sessionStatus.textContent = running
     ? "Your session is getting recorded"
@@ -31,12 +26,44 @@ function showControlScreen(running) {
   sessionStatus.classList.toggle("off", !running);
 }
 
+function showTokenScreen(prefill = { slug: "", token: "" }, { showBack = false } = {}) {
+  companySlugInput.value = prefill.slug || "";
+  tokenInput.value = prefill.token || "";
+  tokenError.classList.add("hidden");
+
+  // Toggle sections
+  tokenSection.classList.remove("hidden");
+  controlSection.classList.add("hidden");
+
+  // Back button visibility
+  if (showBack) {
+    backBtn.classList.remove("hidden");
+  } else {
+    backBtn.classList.add("hidden");
+  }
+
+  companySlugInput.focus();
+}
+
+function showControlScreen(running) {
+  tokenSection.classList.add("hidden");
+  controlSection.classList.remove("hidden");
+  setStatus(running);
+}
+
 async function refresh() {
   try {
     const s = await window.api.getStatus();
-    console.log('[UI] status:', s);
-    if (s.authenticated) showControlScreen(s.running);
-    else showTokenScreen();
+    // also get saved auth for comparison usage
+    const saved = await window.api.getSavedAuth();
+    lastSaved.slug = saved?.companySlug || "";
+    lastSaved.token = saved?.token || "";
+
+    if (s.authenticated) {
+      showControlScreen(s.running);
+    } else {
+      showTokenScreen({ slug: lastSaved.slug, token: lastSaved.token }, { showBack: false });
+    }
   } catch (e) {
     console.error('[UI] getStatus failed:', e);
     showTokenScreen();
@@ -59,6 +86,15 @@ tokenForm.addEventListener("submit", async (e) => {
   }
   tokenError.classList.add("hidden");
 
+  // If unchanged AND we have credentials saved, don't re-register
+  if (companySlug === lastSaved.slug && token === lastSaved.token) {
+    // Go back to control screen (whatever running state was)
+    const s = await window.api.getStatus();
+    showControlScreen(!!s.running);
+    changeMode = false;
+    return;
+  }
+
   console.log('[UI] submitToken', { companySlug, tokenMasked: token.slice(0, 4) + '…' });
 
   const res = await window.api.submitToken({ token, companySlug });
@@ -68,7 +104,14 @@ tokenForm.addEventListener("submit", async (e) => {
     tokenError.classList.remove("hidden");
     return;
   }
-  await refresh();
+
+  // Update local cache
+  lastSaved.slug = companySlug;
+  lastSaved.token = token;
+
+  // If creds changed, main stops monitoring. User must toggle ON manually.
+  showControlScreen(false);
+  changeMode = false;
 });
 
 // Toggle on/off
@@ -81,16 +124,46 @@ toggleSwitch.addEventListener("change", async () => {
     alert(res.error || "Failed to toggle");
     return;
   }
-  sessionStatus.textContent = res.running
-    ? "Your session is getting recorded"
-    : "Your session is not getting recorded";
-  sessionStatus.classList.toggle("on", !!res.running);
-  sessionStatus.classList.toggle("off", !res.running);
+  setStatus(!!res.running);
 });
 
-// Gear → reset to token screen
+// Gear → open change screen with saved values (NO immediate clear)
 gearBtn.addEventListener("click", async () => {
-  console.log('[UI] clearToken');
-  await window.api.clearToken();
-  showTokenScreen();
+  try {
+    const saved = await window.api.getSavedAuth();
+    lastSaved.slug  = saved?.companySlug || "";
+    lastSaved.token = saved?.token || "";
+    changeMode = true;
+    showTokenScreen({ slug: lastSaved.slug, token: lastSaved.token }, { showBack: true });
+  } catch {
+    changeMode = true;
+    showTokenScreen({ slug: "", token: "" }, { showBack: true });
+  }
 });
+
+// Back → return to control screen without changes
+backBtn.addEventListener("click", async () => {
+  const s = await window.api.getStatus();
+  showControlScreen(!!s.running);
+  changeMode = false;
+});
+
+
+// Add near the top (after selecting elements)
+const note = document.createElement('p');
+note.className = 'error hidden';
+note.style.marginTop = '8px';
+document.getElementById('token-section').appendChild(note);
+
+function showNote(msg) {
+  note.textContent = msg || '';
+  note.classList.toggle('hidden', !msg);
+}
+
+// Subscribe to fatal auth error (if preload exposed it)
+if (window.api?.onAuthError) {
+  window.api.onAuthError((payload) => {
+    showTokenScreen({ slug: '', token: '' }, { showBack: false });
+    showNote(payload?.message || 'Please reconnect.');
+  });
+}

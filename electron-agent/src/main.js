@@ -2,7 +2,7 @@ import { app, BrowserWindow, Tray, Menu, screen, nativeImage, ipcMain } from 'el
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
-
+import { stopAndDrain } from './activity/spanManager.js';
 import { getDeviceId, getHostname } from './device.js';
 import {
   saveTokenSecure,
@@ -15,8 +15,9 @@ import {
 import { startActiveWindowWatcher, stopActiveWindowWatcher } from './activity/watchers/activeWindow.js';
 import { startProcessWatcher, stopProcessWatcher } from './activity/watchers/processWatcher.js';
 import { initIdleWatcher } from './activity/watchers/idle.js';
-import { startUploader, stopUploader, setAuthToken, setCompanySlug as setUploaderCompanySlug } from './activity/uploader.js';
+import { startUploader, stopUploader, setAuthToken, setCompanySlug as setUploaderCompanySlug, flushPending, setAuthErrorHandler } from './activity/uploader.js';
 import { API_BASE } from './env.js';
+import { enqueue } from './activity/queue.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -162,8 +163,13 @@ async function registerDeviceAndSaveToken({ token: t, companySlug }) {
 function startMonitoring() {
   if (monitoring) return;
   monitoring = true;
+
   startActiveWindowWatcher();
-  startProcessWatcher();   // optional; not required for spans
+  // captureActiveWindowOnce(); // not strictly needed; startActiveWindowWatcher already calls it
+
+  // Optional process watcher (can be removed to save CPU)
+  // startProcessWatcher();
+
   initIdleWatcher();
   startUploader();
   console.log('[Agent] Monitoring STARTED');
@@ -172,10 +178,39 @@ function startMonitoring() {
 function stopMonitoring() {
   if (!monitoring) return;
   monitoring = false;
+
+  // Emit off marker when the user toggles OFF.
+  try { stopAndDrain(); } catch {}
+
   stopActiveWindowWatcher();
-  stopProcessWatcher();
+  // stopProcessWatcher();
   stopUploader();
   console.log('[Agent] Monitoring STOPPED');
+}
+
+// NEW: central cleanup when auth is invalid (e.g., employee deleted)
+async function handleFatalAuthError(reason) {
+  console.warn('[Agent] Fatal auth → clearing creds and stopping. Reason:', reason);
+  stopMonitoring();
+  try { await clearSecureToken(); } catch {}
+  try { await clearCompanySlug(); } catch {}
+  token = null;
+  boundCompanySlug = '';
+  setAuthToken(null);
+  setUploaderCompanySlug(null);
+
+  // Update tray tooltip to hint state
+  try { tray?.setToolTip('Sentinel Agent — disconnected'); } catch {}
+
+  // Ensure the popover exists, show it, and notify the renderer to show the connect screen.
+  try {
+    createPopoverWindow();           // ensure window exists
+    showPopover();                   // actively open the popover
+    popoverWindow.webContents.send('agent:authError', {
+      title: 'Connection lost',
+      message: 'Your device token is no longer valid. Please reconnect.',
+    });
+  } catch {}
 }
 
 /** ===== IPC (renderer <-> main) ===== */
@@ -184,12 +219,36 @@ ipcMain.handle('agent:getStatus', async () => {
   return { authenticated: !!token, running: monitoring, companySlug: boundCompanySlug };
 });
 
+// Return saved creds for prefill
+ipcMain.handle('agent:getSavedAuth', async () => {
+  const savedToken = await loadTokenSecure();
+  const savedSlug  = await loadCompanySlug();
+  return {
+    token: savedToken || null,
+    companySlug: savedSlug || '',
+  };
+});
+
 ipcMain.handle('agent:submitToken', async (_e, payload /* { token, companySlug } */) => {
   try {
     if (!payload?.token) throw new Error('Missing token');
     if (!payload?.companySlug) throw new Error('Missing company slug');
-    await registerDeviceAndSaveToken(payload);
-    return { ok: true };
+
+    const incomingToken = String(payload.token);
+    const incomingSlug  = String(payload.companySlug).toLowerCase();
+
+    // If unchanged, don't re-register
+    if (token && boundCompanySlug && token === incomingToken && boundCompanySlug === incomingSlug) {
+      return { ok: true, unchanged: true, running: monitoring, companySlug: boundCompanySlug };
+    }
+
+    // If changed, STOP monitoring first; user must toggle ON again explicitly
+    if (monitoring) stopMonitoring();
+
+    await registerDeviceAndSaveToken({ token: incomingToken, companySlug: incomingSlug });
+
+    // Do not auto-start after changing creds
+    return { ok: true, unchanged: false, running: monitoring, companySlug: boundCompanySlug };
   } catch (err) {
     const msg = err?.response?.data?.message || err?.message || 'Registration failed';
     console.error('[Agent] submitToken error:', msg);
@@ -199,8 +258,19 @@ ipcMain.handle('agent:submitToken', async (_e, payload /* { token, companySlug }
 
 ipcMain.handle('agent:toggle', async (_e, on) => {
   if (!token) return { ok: false, error: 'Not registered' };
-  if (on) startMonitoring(); else stopMonitoring();
-  return { ok: true, running: monitoring };
+
+  if (on) {
+    startMonitoring();
+    return { ok: true, running: true };
+  } else {
+    // 1) emit SYSTEM_OFF marker
+    enqueue({ type: 'SYSTEM_OFF', ts: Date.now(), reason: 'toggle_off' });
+    // 2) flush whatever we have
+    await flushPending();
+    // 3) stop everything
+    stopMonitoring();
+    return { ok: true, running: false };
+  }
 });
 
 ipcMain.handle('agent:clearToken', async () => {
@@ -216,17 +286,20 @@ ipcMain.handle('agent:clearToken', async () => {
 
 app.whenReady().then(async () => {
   if (IS_DEV) app.commandLine.appendSwitch('enable-logging');
+  
+  // Register uploader fatal-auth handler
+  setAuthErrorHandler(handleFatalAuthError); // ← NEW
 
   createTray();
   createPopoverWindow();
 
+  // Load saved creds at boot, but DO NOT auto-start monitoring.
   token = await loadTokenSecure();
   boundCompanySlug = await loadCompanySlug();
   setAuthToken(token);
   setUploaderCompanySlug(boundCompanySlug);
 
-  // Optional: auto-start monitoring if token is present
-  if (token) startMonitoring();
+  // Intentionally do NOT start monitoring here.
 });
 
 app.on('window-all-closed', (e) => { e.preventDefault(); });

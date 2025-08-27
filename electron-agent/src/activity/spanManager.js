@@ -1,72 +1,47 @@
-// Builds change-driven ACTIVE_SPAN events and enqueues them.
-// A span starts when foreground app/title changes; ends on next change or idle.
+// Builds APP_FOCUS events (point-in-time) and enqueues them after a short dwell.
 
 import { enqueue } from './queue.js';
 
-let current = null; // { app, title, titleNorm, startTs, lastTs, meta }
-const MIN_SWITCH_MS = 300;
-const MAX_SPAN_MS = 2 * 60 * 60 * 1000; // 2h checkpoint
+let currentApp = null;   // string | null
+let dwellTimer = null;
+const DWELL_MS = 1500;   // user must stay at least this long in the app
 
-function now() { return Date.now(); }
-
-function normalizeTitle(title) {
-  if (!title) return '';
-  return title
-    .toLowerCase()
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/\b\d+[\w-]*/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function closeAndEmit(reason = 'change', inferredEnd = false) {
-  if (!current) return;
-  const end = current.lastTs || now();
-  const dur = end - current.startTs;
-  if (dur < MIN_SWITCH_MS) { current = null; return; }
-
-  enqueue({
-    type: 'ACTIVE_SPAN',
-    ts: end,
-    app: current.app,
-    title: current.title,
-    titleNorm: current.titleNorm,
-    startTs: current.startTs,
-    endTs: end,
-    durationMs: dur,
-    inferredEnd,
-    meta: current.meta || {},
-  });
-  current = null;
-}
-
-export function onActiveWindowChange({ app, title, pid }) {
-  const t = now();
-  const titleNorm = normalizeTitle(title || '');
-  if (current && current.app === app && current.titleNorm === titleNorm) {
-    current.lastTs = t;
-    if (t - current.startTs >= MAX_SPAN_MS) {
-      closeAndEmit('checkpoint');
-      current = { app, title, titleNorm, startTs: t, lastTs: t, meta: { pid } };
-    }
-    return;
+function clearDwell() {
+  if (dwellTimer) {
+    clearTimeout(dwellTimer);
+    dwellTimer = null;
   }
-  closeAndEmit('change');
-  current = { app, title, titleNorm, startTs: t, lastTs: t, meta: { pid } };
 }
 
-export function onIdleStart() {
-  closeAndEmit('idle');
+export function onActiveWindowChange({ app /*, title, pid*/ }) {
+  // Only app-level granularity.
+  if (app === currentApp) return; // no change
+
+  currentApp = app;
+  clearDwell();
+
+  // Schedule an eager slice after dwell
+  dwellTimer = setTimeout(() => {
+    // Enqueue a single point event for this app focus
+    enqueue({
+      type: 'APP_FOCUS',
+      ts: Date.now(),
+      app,
+      title: '',      // intentionally blank
+      titleNorm: '',  // intentionally blank
+    });
+    dwellTimer = null;
+  }, DWELL_MS);
 }
 
-export function onIdleEnd() {
-  // no-op; next active window change starts a fresh span
-}
+// Called when machine idles/sleeps/shuts down — if you keep those hooks.
+// With point events model we don’t need to end anything here.
+export function onIdleStart() {}
+export function onIdleEnd() {}
+export function onSleepOrShutdown() {}
 
-export function onSleepOrShutdown() {
-  closeAndEmit('sleep', true);
-}
-
+// If you want to emit a SYSTEM_OFF event elsewhere (on toggle OFF),
+// do not do it here; do it in main IPC path to ensure upload-before-stop.
 export function stopAndDrain() {
-  closeAndEmit('stop');
+  clearDwell();
 }

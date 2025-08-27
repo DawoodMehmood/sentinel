@@ -1,9 +1,8 @@
 import { powerMonitor } from 'electron';
-import { onIdleStart, onIdleEnd, onSleepOrShutdown } from '../spanManager.js';
+import { onSleepOrShutdown } from '../spanManager.js';
 
 export function initIdleWatcher() {
-  powerMonitor.on('lock-screen', onIdleStart);
+  // Record a SYSTEM_OFF when the OS sleeps/shuts down.
   powerMonitor.on('suspend', onSleepOrShutdown);
   powerMonitor.on('shutdown', onSleepOrShutdown);
-  powerMonitor.on('unlock-screen', onIdleEnd);
 }
