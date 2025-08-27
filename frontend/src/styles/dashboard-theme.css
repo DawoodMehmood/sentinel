@@ -1,0 +1,216 @@
+/* src/styles/dashboard-theme.css */
+/* Scoped tokens + base just for the dashboard area. Nothing global. */
+/* --- Light tokens (scoped) --- */
+.dash-scope {
+    --font-sans: var(--font-inter);
+    --header-height: calc(var(--spacing) * 12 + 1px);
+    --radius: 0.625rem;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    /* extras used by the dashboard */
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+    /* local base styles (scoped) */
+    background: var(--background);
+    color: var(--foreground);
+    overscroll-behavior: none;
+    font-family: var(--font-sans, Inter, system-ui, sans-serif);
+}
+
+/* --- Dark tokens (scoped) --- */
+.dark .dash-scope {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.269 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.371 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.439 0 0);
+}
+
+/* Outline/border defaults only inside dashboard */
+.dash-scope,
+.dash-scope * {
+    border-color: var(--border);
+}
+
+/* Optional variants */
+.theme-scaled {
+    @media (min-width: 1024px) {
+        --radius: 0.6rem;
+        --text-lg: 1.05rem;
+        --text-base: 0.85rem;
+        --text-sm: 0.8rem;
+        --spacing: 0.222222rem;
+    }
+
+    [data-slot='card'] {
+        --spacing: 0.16rem;
+    }
+
+    [data-slot='select-trigger'],
+    [data-slot='toggle-group-item'] {
+        --spacing: 0.222222rem;
+    }
+}
+
+.dash-scope.theme-mono,
+.dash-scope.theme-mono.theme-scaled {
+    --font-sans: var(--font-mono);
+    --primary: var(--color-neutral-600);
+    --primary-foreground: var(--color-neutral-50);
+}
+
+.dash-scope.theme-blue {
+    --primary: var(--color-blue-600);
+}
+
+.dash-scope.theme-green {
+    --primary: var(--color-lime-600);
+}
+
+.dash-scope.theme-amber {
+    --primary: var(--color-amber-600);
+}
+
+.theme-default,
+.theme-default-scaled {
+    --primary: var(--color-neutral-600);
+    --primary-foreground: var(--color-neutral-50);
+}
+
+.theme-blue,
+.theme-blue-scaled {
+    --primary: var(--color-blue-600);
+    --primary-foreground: var(--color-blue-50);
+}
+
+.theme-green,
+.theme-green-scaled {
+    --primary: var(--color-lime-600);
+    --primary-foreground: var(--color-lime-50);
+}
+
+.theme-amber,
+.theme-amber-scaled {
+    --primary: var(--color-amber-600);
+    --primary-foreground: var(--color-amber-50);
+}
+
+.theme-mono,
+.theme-mono-scaled {
+    --font-sans: var(--font-mono);
+    --primary: var(--color-neutral-600);
+    --primary-foreground: var(--color-neutral-50);
+
+    .rounded-xs,
+    .rounded-sm,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl {
+        @apply !rounded-none;
+        border-radius: 0;
+    }
+
+    .shadow-xs,
+    .shadow-sm,
+    .shadow-md,
+    .shadow-lg,
+    .shadow-xl {
+        @apply !shadow-none;
+    }
+
+    [data-slot='toggle-group'],
+    [data-slot='toggle-group-item'] {
+        @apply !rounded-none !shadow-none;
+    }
+}
+
+
+/* (If you want the view-transition wave only in dashboard) */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+    /* Ensure the outgoing view (old theme) is beneath */
+    z-index: 0;
+}
+
+::view-transition-new(root) {
+    /* Ensure the incoming view (new theme) is always on top */
+    z-index: 1;
+}
+
+@keyframes reveal {
+    from {
+        /* Use CSS variables for the origin, defaulting to center if not set */
+        clip-path: circle(0% at var(--x, 50%) var(--y, 50%));
+        opacity: 0.7;
+    }
+
+    to {
+        /* Use CSS variables for the origin, defaulting to center if not set */
+        clip-path: circle(150% at var(--x, 50%) var(--y, 50%));
+        opacity: 1;
+    }
+}
+
+::view-transition-new(root) {
+    /* Apply the reveal animation */
+    animation: reveal 0.4s ease-in-out forwards;
+}

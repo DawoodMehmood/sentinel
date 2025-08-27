@@ -1,29 +1,16 @@
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import ScrollToTop from "@/components/ScrollToTop";
-import "../styles/index.css";
-import "../styles/prism-vsc-dark-plus.css";
-import Providers from "./providers";
+import type { Metadata } from "next";
+import "../styles/index.css";              // your existing CSS (keep)
+import "../styles/prism-vsc-dark-plus.css"; // keep if you need the blog/prism styles
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const metadata: Metadata = {
+  title: "Sentinel",
+  description: "Employee activity insights",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning className="!scroll-smooth" lang="en">
-      <body>
-        <Providers>
-          <div className="isolate">
-            <Header />
-
-            {children}
-
-            <Footer />
-            <ScrollToTop />
-          </div>
-        </Providers>
-      </body>
+      {children}
     </html>
   );
 }

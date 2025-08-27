@@ -86,33 +86,26 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
-  callbacks: {
-    jwt: async (payload: any) => {
-      const { token } = payload;
-      const user = payload.user;
-
-      if (user) {
-        return {
-          ...token,
-          id: user.id,
-        };
-      }
-      return token;
-    },
-
-    session: async ({ session, token }) => {
-      if (session?.user) {
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            id: token?.id,
-          },
-        };
-      }
-      return session;
-    },
+callbacks: {
+  async jwt({ token, user }) {
+    if (user) {
+      // this runs at sign-in
+      token.id = user.id
+      token.slug = user.slug // 👈 add your custom field
+    } else {
+      // no `user` param means just reusing the existing token
+    }
+    return token
   },
+
+  async session({ session, token }) {
+    if (session.user) {
+      session.user.id = token.id as string
+      session.user.slug = token.slug as string | null // 👈 forward it
+    }
+    return session
+  },
+}
 
   // debug: process.env.NODE_ENV === "developement",
 };

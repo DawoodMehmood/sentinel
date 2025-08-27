@@ -1,6 +1,7 @@
 // prisma/schema.prisma
 // Base: your SaaS template with NextAuth + Stripe elsewhere
-// Added: Company fields on User, Employee, ActivitySpan, Patterns (daily & lifetime)
+// Added: Company fields on User, Employee, ActivitySpan
+// Added: SeqPatternLifetime (per-employee) and SeqPatternCompany (company-wide aggregation)
 
 datasource db {
   provider = "postgresql"
@@ -11,7 +12,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// NextAuth core (unchanged)
+// -------------------- NextAuth core (unchanged) -------------------- 
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -48,7 +50,8 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Company = auth User
+// -------------------- Company = auth User -------------------- 
+
 model User {
   id                    String    @id @default(cuid())
   name                  String?
@@ -60,10 +63,8 @@ model User {
   passwordResetTokenExp DateTime?
 
   // Company (tenant) fields
-  slug            String?   @unique // company slug, set after signup
-  timezone        String    @default("UTC") // e.g. "Asia/Karachi"
-  officeEndHour   Int       @default(18) // local 0..23, for scheduling mining after hours
-  userLimit       Int       @default(3) // number of employees allowed
+  slug            String    @unique // company slug, set after signup
+  userLimit       Int       @default(0) // number of employees allowed
   subscriptionEnd DateTime? // null means active or handled by Stripe webhooks
 
   // Relations
@@ -71,19 +72,23 @@ model User {
   sessions  Session[]
   employees Employee[]
 
-  // (Optional) you can add Stripe IDs here if your template doesn’t already store them elsewhere
-  stripeCustomerId   String?              @unique
-  stripeSubId        String?              @unique
+  // Optional Stripe fields (if not stored elsewhere)
+  stripeCustomerId String? @unique
+  stripeSubId      String? @unique
+
+  // Data
   ActivitySpan       ActivitySpan[]
-  SeqPatternDaily    SeqPatternDaily[]
   SeqPatternLifetime SeqPatternLifetime[]
+  SeqPatternCompany  SeqPatternCompany[] // NEW: company-wide aggregates
+  PatternCursor      PatternCursor[]
 }
 
-// Employees (agent users)
+// -------------------- Employees (agent users) -------------------- 
+
 model Employee {
   id        String  @id @default(cuid())
   companyId String
-  name      String?
+  name      String
   email     String? @unique
 
   // Agent auth/binding
@@ -91,62 +96,38 @@ model Employee {
   tokenActive   Boolean   @default(true)
   boundDeviceId String? // first device that registers with this token
   lastUsed      DateTime?
+  createdAt     DateTime  @default(now())
 
   // Relations
   company User @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // Data
-  spans        ActivitySpan[]
-  patternsDay  SeqPatternDaily[]
-  patternsLife SeqPatternLifetime[]
+  spans         ActivitySpan[]
+  patternsLife  SeqPatternLifetime[]
+  PatternCursor PatternCursor[]
 
   @@index([companyId])
 }
 
-// Agent upload: spans (event-driven)
+// -------------------- Agent upload: events -------------------- 
+
 model ActivitySpan {
   id         String @id @default(cuid())
   companyId  String
   employeeId String
 
-  startTs     DateTime
-  endTs       DateTime
-  durationMs  Int
-  app         String
-  titleNorm   String
-  rawTitle    String?
-  inferredEnd Boolean  @default(false)
-
+  // With eager logging we store just the focused app at a timestamp.
+  app       String
   createdAt DateTime @default(now())
 
   company  User     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
-  @@index([companyId, startTs])
-  @@index([companyId, employeeId, startTs])
   @@index([companyId, app])
+  @@index([companyId, employeeId, createdAt])
 }
 
-// Nightly mining outputs
-// - Daily: immutable per-day snapshots per employee
-// - Lifetime: cumulative per employee
-model SeqPatternDaily {
-  id         String   @id @default(cuid())
-  companyId  String
-  employeeId String
-  day        DateTime // UTC timestamp marking the start of the company's local day
-  n          Int // 2..5 typically
-  seqKey     String // e.g. "chrome>excel>powerbi"
-  support    Int
-  firstSeen  DateTime @default(now())
-  lastSeen   DateTime @default(now())
-
-  company  User     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@unique([companyId, employeeId, day, n, seqKey])
-  @@index([companyId, day, n, support])
-}
+// -------------------- Patterns: per-employee lifetime --------------------
 
 model SeqPatternLifetime {
   id         String   @id @default(cuid())
@@ -154,7 +135,7 @@ model SeqPatternLifetime {
   employeeId String
   n          Int
   seqKey     String
-  support    Int      @default(0) // cumulative across all time
+  support    Int      @default(0) // cumulative across all time for this employee
   firstSeen  DateTime @default(now())
   lastSeen   DateTime @default(now())
 
@@ -163,4 +144,37 @@ model SeqPatternLifetime {
 
   @@unique([companyId, employeeId, n, seqKey])
   @@index([companyId, n, support])
+}
+
+// -------------------- Patterns: company-wide aggregation (NEW) --------------------
+
+model SeqPatternCompany {
+  id        String   @id @default(cuid())
+  companyId String
+  n         Int
+  seqKey    String
+  support   Int      @default(0) // total count across all employees
+  employees Int      @default(0) // distinct employees who exhibited it
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  company User @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, n, seqKey])
+  @@index([companyId, support])
+  @@index([companyId, employees])
+}
+
+model PatternCursor {
+  companyId     String
+  employeeId    String
+  lastCreatedAt DateTime? // last processed ActivitySpan.createdAt
+  tail          Json? // JSON array of last (nMax-1) apps from the *collapsed* stream
+  updatedAt     DateTime  @updatedAt
+
+  company  User     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, employeeId])
+  @@index([companyId, employeeId])
 }
