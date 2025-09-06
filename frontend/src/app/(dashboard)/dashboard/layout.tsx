@@ -36,7 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   // Preserve the dashboard’s theme cookie contract
   const cookieStore = await cookies();
-  const activeThemeValue = cookieStore.get("active_theme")?.value;
+  const activeThemeValue = 'blue';
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
   const isScaled = activeThemeValue?.endsWith('-scaled');
 

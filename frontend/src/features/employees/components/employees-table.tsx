@@ -153,8 +153,6 @@ function RowItem({
         }
     };
 
-    const masked = '•'.repeat(Math.min(16, row.token.length)); // keep length reasonable
-
     return (
         <TableRow>
             <TableCell className="font-medium">{row.name || '—'}</TableCell>

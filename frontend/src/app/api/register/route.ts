@@ -85,8 +85,6 @@ export async function POST(request: Request) {
         name: true,
         email: true,
         slug: true,
-        timezone: true,
-        officeEndHour: true,
         userLimit: true,
       },
     });

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import SmartDownloadButton from "./smartDownloadButton";
 
 const Hero = () => {
   return (
@@ -22,14 +23,9 @@ const Hero = () => {
                   Next.js SaaS designed and built for tracking and monitoring
                   your users or employees repetitive tasks. 
                 </p>
-                <ul className="mb-10 flex flex-wrap items-center justify-center gap-5">
+                <ul className="flex flex-wrap items-center justify-center gap-5">
                   <li>
-                    <Link
-                      href="https://nextjstemplates.com/templates/play"
-                      className="inline-flex items-center justify-center rounded-md bg-white px-7 py-[14px] text-center text-base font-medium text-dark shadow-1 transition duration-300 ease-in-out hover:bg-gray-2"
-                    >
-                      Download Now
-                    </Link>
+                    <SmartDownloadButton className="inline-flex items-center justify-center rounded-md bg-white px-7 py-[14px] text-center text-base font-medium text-dark shadow-1 transition duration-300 ease-in-out hover:bg-gray-2" />
                   </li>
                   {/* <li>
                     <Link

@@ -66,14 +66,14 @@ const Header = () => {
                     <Image
                       src={`/images/logo/sentinel.png`}
                       alt="logo"
-                      width={240}
+                      width={140}
                       height={30}
                       className="header-logo w-full dark:hidden"
                     />
                     <Image
                       src={`/images/logo/sentinel.png`}
                       alt="logo"
-                      width={240}
+                      width={140}
                       height={30}
                       className="header-logo hidden w-full dark:block"
                     />
@@ -289,11 +289,13 @@ const Header = () => {
                 {session?.user ? (
                   <>
                     <p
-                      className={`loginBtn px-7 py-3 text-base font-medium ${
+                      className={`loginBtn px-7 py-3 text-base font-medium hover:underline ${
                         !sticky && pathUrl === "/" ? "text-white" : ''
                       }`}
                     >
+                      <Link href={"/dashboard/overview"} className="capitalize">
                       {session?.user?.name?.split(" ")[0]}
+                      </Link>
                     </p>
                     {pathUrl !== "/" || sticky ? (
                       <button

@@ -1,9 +1,7 @@
 'use client';
 
 import { Column, ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, formatDistanceToNow } from 'date-fns';
 
 export type Row = {

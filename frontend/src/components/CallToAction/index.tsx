@@ -20,8 +20,8 @@ const CallToAction = () => {
                   majority have suffered in some form.
                 </p>
                 <Link
-                  href="/"
-                  className="inline-block rounded-md border border-transparent bg-secondary px-7 py-3 text-base font-medium text-white transition hover:bg-[#0BB489]"
+                  href="/dashboard/overview"
+                  className="inline-block rounded-md border border-transparent bg-white px-7 py-3 text-base font-medium text-black transition hover:bg-primary hover:text-white hover:border-white"
                 >
                   Start using Sentinel
                 </Link>

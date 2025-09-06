@@ -54,8 +54,8 @@ model VerificationToken {
 
 model User {
   id                    String    @id @default(cuid())
-  name                  String?
-  email                 String?   @unique
+  name                  String
+  email                 String    @unique
   emailVerified         DateTime?
   image                 String?
   password              String?
@@ -72,15 +72,12 @@ model User {
   sessions  Session[]
   employees Employee[]
 
-  // Optional Stripe fields (if not stored elsewhere)
-  stripeCustomerId String? @unique
-  stripeSubId      String? @unique
-
   // Data
   ActivitySpan       ActivitySpan[]
   SeqPatternLifetime SeqPatternLifetime[]
   SeqPatternCompany  SeqPatternCompany[] // NEW: company-wide aggregates
   PatternCursor      PatternCursor[]
+  BillingRecord      BillingRecord[]
 }
 
 // -------------------- Employees (agent users) -------------------- 
@@ -177,4 +174,19 @@ model PatternCursor {
 
   @@id([companyId, employeeId])
   @@index([companyId, employeeId])
+}
+
+model BillingRecord {
+  id              String   @id @default(cuid())
+  companyId       String
+  stripeSessionId String   @unique
+  planId          String // "basic" | "pro" | "business"
+  seats           Int
+  amountCents     Int
+  paidAt          DateTime // when we confirm the session is paid
+  createdAt       DateTime @default(now())
+
+  company User @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, paidAt])
 }

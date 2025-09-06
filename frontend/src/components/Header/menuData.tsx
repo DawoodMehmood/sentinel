@@ -31,54 +31,15 @@ const menuData: Menu[] = [
     path: "/blogs",
     newTab: false,
   },
-  // {
-  //   id: 6,
-  //   title: "Pages",
-  //   newTab: false,
-  //   submenu: [
-  //     {
-  //       id: 61,
-  //       title: "About Page",
-  //       path: "/about",
-  //       newTab: false,
-  //     },
-  //     {
-  //       id: 62,
-  //       title: "Pricing Page",
-  //       path: "/pricing",
-  //       newTab: false,
-  //     },
-  //     {
-  //       id: 63,
-  //       title: "Contact Page",
-  //       path: "/contact",
-  //       newTab: false,
-  //     },
-  //     {
-  //       id: 64,
-  //       title: "Blog Grid Page",
-  //       path: "/blogs",
-  //       newTab: false,
-  //     },
-  //     {
-  //       id: 66,
-  //       title: "Sign Up Page",
-  //       path: "/signup",
-  //       newTab: false,
-  //     },
-  //     {
-  //       id: 67,
-  //       title: "Sign In Page",
-  //       path: "/signin",
-  //       newTab: false,
-  //     },
-  //     {
-  //       id: 68,
-  //       title: "Error Page",
-  //       path: "/error",
-  //       newTab: false,
-  //     },
-  //   ],
-  // },
+  {
+    id: 6,
+    title: "Downloads",
+    newTab: false,
+    submenu: [
+      { id: 61, title: "Windows", path: "/installers/windows.exe", newTab: false },
+      { id: 62, title: "macOS",   path: "/installers/macos.dmg", newTab: false },
+      { id: 63, title: "Linux", path: "/installers/linux.AppImage", newTab: false },
+    ],
+  },
 ];
 export default menuData;

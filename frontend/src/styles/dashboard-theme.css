@@ -80,10 +80,11 @@
 }
 
 /* Outline/border defaults only inside dashboard */
-.dash-scope,
-.dash-scope * {
+/* better: zero specificity so utilities override it */
+:where(.dash-scope, .dash-scope *) {
     border-color: var(--border);
 }
+
 
 /* Optional variants */
 .theme-scaled {

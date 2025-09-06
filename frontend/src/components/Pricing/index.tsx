@@ -12,17 +12,17 @@ const Pricing = () => {
       <div className="container">
         <div className="mb-[60px]">
           <SectionTitle
-            subtitle="Pricing Table"
-            title="Our Pricing Plan"
-            paragraph="There are many variations of passages of Lorem Ipsum available but the majority have suffered alteration in some form."
+            subtitle="Pricing"
+            title="Choose your plan"
+            paragraph="Pick a plan by seats. Each purchase extends access by 30 days."
             center
           />
         </div>
 
         <div className="-mx-4 flex flex-wrap justify-center">
           {pricingData.map((product, i) => (
-            <PricingBox key={i} product={product} />
-          ))}     
+            <PricingBox key={product.planId ?? i} product={product} />
+          ))}
         </div>
       </div>
     </section>

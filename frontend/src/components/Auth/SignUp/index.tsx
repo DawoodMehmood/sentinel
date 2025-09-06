@@ -11,7 +11,7 @@ import Loader from "@/components/Common/Loader";
 
 const SignUp = () => {
   const router = useRouter();
-  const [isPassword, setIsPassword] = useState(false);
+  const [isPassword, setIsPassword] = useState(true);
   const [loading, setLoading] = useState(false);
 
 const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -67,7 +67,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               className="wow fadeInUp shadow-form relative mx-auto max-w-[525px] overflow-hidden rounded-xl bg-white px-8 py-14 text-center dark:bg-dark-2 sm:px-12 md:px-[60px]"
               data-wow-delay=".15s"
             >
-              <div className="mb-10 text-center">
+              {/* <div className="mb-10 text-center">
                 <Link href="/" className="mx-auto inline-block max-w-[160px]">
                   <Image
                     src="/images/logo/sentinel.png"
@@ -84,7 +84,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                     className="hidden dark:block"
                   />
                 </Link>
-              </div>
+              </div> */}
 
               <SocialSignIn />
 
@@ -95,10 +95,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                 </span>
               </span>
 
-              <SwitchOption
+              {/* <SwitchOption
                 isPassword={isPassword}
                 setIsPassword={setIsPassword}
-              />
+              /> */}
 
               {isPassword ? (
                 <form onSubmit={handleSubmit}>

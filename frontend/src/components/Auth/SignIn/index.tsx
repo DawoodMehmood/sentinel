@@ -19,34 +19,58 @@ const Signin = () => {
     checkboxToggle: false,
   });
 
-  const [isPassword, setIsPassword] = useState(false);
+  const [isPassword, setIsPassword] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const loginUser = (e: any) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    setLoading(true);
-    signIn("credentials", { ...loginData, redirect: false })
-      .then((callback) => {
-        if (callback?.error) {
-          toast.error(callback?.error);
-          console.log(callback?.error);
-          setLoading(false);
-          return;
-        }
-
-        if (callback?.ok && !callback?.error) {
-          toast.success("Login successful");
-          setLoading(false);
-          router.push("/dashboard/overview");
-        }
-      })
-      .catch((err) => {
+  setLoading(true);
+  signIn("credentials", { ...loginData, redirect: false })
+    .then(async (callback) => {
+      if (callback?.error) {
+        toast.error(callback.error);
         setLoading(false);
-        console.log(err.message);
-        toast.error(err.message);
-      });
-  };
+        return;
+      }
+
+      if (callback?.ok) {
+        try {
+          // fetch subscription status
+          const res = await fetch("/api/billing/status", { cache: "no-store" });
+          if (!res.ok) {
+            // fallback if something went wrong
+            router.push("/dashboard/overview");
+            return;
+          }
+          const data: { status: 'none' | 'active' | 'expired' } = await res.json();
+
+          toast.success("Login successful");
+          if (data.status === "active") {
+            router.push("/dashboard/overview");
+          } 
+          else if (data.status === "expired") {
+            router.push("/dashboard/billing");
+          } 
+          else {
+            router.push("/pricing");
+          }
+        } catch (err: any) {
+          console.error(err);
+          // safe default
+          router.push("/dashboard/overview");
+        } finally {
+          setLoading(false);
+        }
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      toast.error(err.message);
+      setLoading(false);
+    });
+};
+
 
   return (
     <section className="bg-[#F4F7FF] py-14 dark:bg-dark lg:py-20">
@@ -57,7 +81,7 @@ const Signin = () => {
               className="wow fadeInUp relative mx-auto max-w-[525px] overflow-hidden rounded-lg bg-white px-8 py-14 text-center dark:bg-dark-2 sm:px-12 md:px-[60px]"
               data-wow-delay=".15s"
             >
-              <div className="mb-10 text-center">
+              {/* <div className="mb-10 text-center">
                 <Link href="/" className="mx-auto inline-block max-w-[160px]">
                   <Image
                     src="/images/logo/sentinel.png"
@@ -74,7 +98,7 @@ const Signin = () => {
                     className="hidden dark:block"
                   />
                 </Link>
-              </div>
+              </div> */}
 
               <SocialSignIn />
 
@@ -85,10 +109,10 @@ const Signin = () => {
                 </span>
               </span>
 
-              <SwitchOption
+              {/* <SwitchOption
                 isPassword={isPassword}
                 setIsPassword={setIsPassword}
-              />
+              /> */}
 
               {isPassword ? (
                 <form onSubmit={(e) => e.preventDefault()}>
@@ -126,12 +150,12 @@ const Signin = () => {
                 <MagicLink />
               )}
 
-              <Link
+              {/* <Link
                 href="/forgot-password"
                 className="mb-2 inline-block text-base text-dark hover:text-primary dark:text-white dark:hover:text-primary"
               >
                 Forget Password?
-              </Link>
+              </Link> */}
               <p className="text-body-secondary text-base">
                 Not a member yet?{" "}
                 <Link href="/signup" className="text-primary hover:underline">
